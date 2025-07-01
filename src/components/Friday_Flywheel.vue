@@ -768,7 +768,7 @@ const testRestart= async ()=>{
 */
 .screenshot-img {
   display: block;
-  height: 75vh;
+  height: 70vh;
 }
 
 .annotation-editor {
