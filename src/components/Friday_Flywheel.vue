@@ -28,6 +28,7 @@ const shoppingTaskParameters = reactive({
 const actionTypes = [
   { label: '点击 (tap)', value: 'tap' },
   { label: '输入文本 (text)', value: 'text' },
+  { label: '需要反馈 (need_feedback)', value: 'need_feedback' },
   { label: '长按 (long_press)', value: 'long_press' },
   { label: '滑动 (swipe)', value: 'swipe' },
   { label: '等待 (wait)', value: 'wait' },
@@ -276,10 +277,12 @@ const handleSaveAnnotation = async () => {
       action_info: actionForm
     });
     message.success('标注保存成功');
+    getScreenshot();
+
     // 获取应用截图
-    setTimeout(()=>{
-      getScreenshot();
-    },1500)
+    // setTimeout(()=>{
+    //   getScreenshot();
+    // },1500)
   } catch (error) {
     message.error(`保存失败: ${error.message}`);
   }
@@ -683,6 +686,11 @@ const testRestart= async ()=>{
 
                 <!-- 条件渲染: text -->
                 <a-form-item label="输入内容" v-if="actionForm.action === 'text'">
+                  <a-input v-model:value="actionForm.value" placeholder="请输入文本" />
+                </a-form-item>
+
+                <!-- 条件渲染: need_feedback -->
+                <a-form-item label="输入需要反馈给用户的内容" v-if="actionForm.action === 'need_feedback'">
                   <a-input v-model:value="actionForm.value" placeholder="请输入文本" />
                 </a-form-item>
 
