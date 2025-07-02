@@ -223,7 +223,7 @@ const infer=async ()=>{
       'quantity':shoppingTaskParameters.count,
       'item_name':shoppingTaskParameters.product_name,
       'store_name':shoppingTaskParameters.store_name,
-      'specifications':shoppingTaskParameters.specifications
+      'specs':shoppingTaskParameters.specifications
     }
   });
   if(res.status==='success'){
@@ -265,7 +265,7 @@ const handleSaveAnnotation = async () => {
         'quantity':shoppingTaskParameters.count,
         'item_name':shoppingTaskParameters.product_name,
         'store_name':shoppingTaskParameters.store_name,
-        'specifications':shoppingTaskParameters.specifications
+        'specs':shoppingTaskParameters.specifications
       },
       'action_info':actionForm,
       'user_id':user_id.value,
@@ -776,7 +776,7 @@ const testRestart= async ()=>{
 */
 .screenshot-img {
   display: block;
-  height: 75vh;
+  height: 70vh;
 }
 
 .annotation-editor {

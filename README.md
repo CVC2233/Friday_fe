@@ -1,6 +1,8 @@
 # friday_flywheel
 
 This template should help get you started developing with Vue 3 in Vite.
+node version: v22.14.0
+npm version: 10.9.2
 
 ## Recommended IDE Setup
 
