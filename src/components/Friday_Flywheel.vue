@@ -31,6 +31,7 @@ const actionTypes = [
   { label: '需要反馈 (need_feedback)', value: 'need_feedback' },
   { label: '长按 (long_press)', value: 'long_press' },
   { label: '滑动 (swipe)', value: 'swipe' },
+  { label: '滑动 (swipe_two_points)', value: 'swipe_two_points' },
   { label: '等待 (wait)', value: 'wait' },
   { label: '结束 (FINISH)', value: 'FINISH' },
 ];
@@ -56,6 +57,8 @@ const actionForm = reactive({
   value: '',
   direction: 'up',
   distance: 'medium',
+  x_end: null,
+  y_end: null
 });
 
 /**
@@ -131,16 +134,22 @@ const updateActionForm = (actionObject) => {
     actionForm.value = '';
     actionForm.direction = 'up';
     actionForm.distance = 'medium';
+    actionForm.x_end = null;
+    actionForm.y_end = null;
     return;
   }
   // 使用 Object.assign 来填充表单，后端返回的对象可能不包含所有字段
+  // 后面属性的优先级更高
   Object.assign(actionForm, {
     // 先设置默认值
+    action: null,
     x: null,
     y: null,
     value: '',
     direction: 'up',
     distance: 'medium',
+    x_end: null,
+    y_end: null,
     // 再用后端数据覆盖
     ...actionObject
   });
@@ -277,7 +286,21 @@ const handleSaveAnnotation = async () => {
       action_info: actionForm
     });
     message.success('标注保存成功');
-    getScreenshot();
+    // 清空标注
+    Object.assign(actionForm, {
+      // 设置默认值
+      action: null,
+      x: null,
+      y: null,
+      value: '',
+      direction: 'up',
+      distance: 'medium',
+      x_end: null,
+      y_end: null,
+    });
+    // 获取应用截图
+    await getScreenshot();
+    // 清空过时的ActionForm
 
     // 获取应用截图
     // setTimeout(()=>{
@@ -356,6 +379,33 @@ const handleCanvasClick = (event) => {
       // 更新标注
       handlePreview();
     }
+  }if(actionForm.action === 'swipe_two_points' ) {
+    const coords = convertDisplayCoordsToReal(
+        event.offsetX,
+        event.offsetY
+    );
+    // 如果初始坐标存在则填充初始坐标
+    if(!actionForm.x||!actionForm.y){
+      if(coords) {
+        actionForm.x = coords.x;
+        actionForm.y = coords.y;
+        message.success(`起始坐标已更新: (${coords.x}, ${coords.y})`);
+      }
+    }else{
+      // 填充末尾坐标
+      // 相对距离长的轴决定方向,另一个轴决定距离
+      const x_distance = Math.abs(coords.x - actionForm.x);
+      const y_distance = Math.abs(coords.y - actionForm.y);
+      if(x_distance >= y_distance){
+        actionForm.x_end = coords.x;
+        actionForm.y_end = actionForm.y;
+      }else{
+        actionForm.x_end = actionForm.x;
+        actionForm.y_end = coords.y;
+      }
+      message.success(`末尾坐标已更新: (${actionForm.x_end}, ${actionForm.y_end})`);
+      handlePreview();
+    }
   }
 };
 /**
@@ -409,6 +459,21 @@ const handlePreview = () => {
         }
         drawTapOnCanvas(ctx, startCoords.x, startCoords.y);
         drawSwipeArrowOnCanvas(ctx, startCoords.x, startCoords.y, endX, endY);
+      }
+    } else if (action === 'swipe_two_points') {
+      if (actionForm.x == null || actionForm.y == null) {
+        message.warn('预览失败：起始坐标不完整');
+        return;
+      }
+      if(actionForm.x_end == null || actionForm.y_end == null) {
+        message.warn('预览失败: 终止坐标不完整');
+        return;
+      }
+      const startCoords = convertRealCoordsToDisplay(actionForm.x, actionForm.y);
+      const endCoords = convertRealCoordsToDisplay(actionForm.x_end, actionForm.y_end);
+      if (startCoords&&endCoords) {
+        drawTapOnCanvas(ctx, startCoords.x, startCoords.y);
+        drawSwipeArrowOnCanvas(ctx, startCoords.x, startCoords.y, endCoords.x, endCoords.y);
       }
     } else {
       message.info('该操作类型不支持预览');
@@ -721,7 +786,25 @@ const testRestart= async ()=>{
                     </a-form-item>
                   </a-space>
                 </template>
-
+                <!-- 条件渲染: swipe_two_points -->
+                <template v-if="actionForm.action === 'swipe_two_points'">
+                  <a-space>
+                    <a-form-item label="起始坐标 X">
+                      <a-input-number v-model:value="actionForm.x" placeholder="X" />
+                    </a-form-item>
+                    <a-form-item label="起始坐标 Y">
+                      <a-input-number v-model:value="actionForm.y" placeholder="Y" />
+                    </a-form-item>
+                  </a-space>
+                  <a-space>
+                    <a-form-item label="终止坐标 X">
+                      <a-input-number v-model:value="actionForm.x_end" placeholder="X" />
+                    </a-form-item>
+                    <a-form-item label="终止坐标 Y">
+                      <a-input-number v-model:value="actionForm.y_end" placeholder="Y" />
+                    </a-form-item>
+                  </a-space>
+                </template>
                 <!-- wait 和 FINISH 不需要额外输入框 -->
 
                 <a-divider />
