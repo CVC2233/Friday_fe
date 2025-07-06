@@ -631,6 +631,7 @@ const testRestart= async ()=>{
           type="primary"
           :loading="initLoading"
           @click="handleSaveAnnotation"
+          :disabled="!actionForm.action"
       >
         保存结果,执行,截图
       </a-button>
