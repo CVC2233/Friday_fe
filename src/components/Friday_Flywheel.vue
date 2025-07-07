@@ -23,6 +23,17 @@ const shoppingTaskParameters = reactive({
   store_name: '',
   specifications: ''
 });
+// 实现任务通用化
+const taskParametersMap={
+  shopping: {
+    count: 0,
+    product_name: '',
+    store_name: '',
+    specifications: ''
+  }
+}
+// 当前展示的二级任务参数
+const activeTaskParameters=reactive({});
 // --- [新增] 表单相关的状态和常量 ---
 // Action 的所有可能类型
 const actionTypes = [
@@ -299,13 +310,13 @@ const handleSaveAnnotation = async () => {
       y_end: null,
     });
     // 获取应用截图
-    await getScreenshot();
+    // await getScreenshot();
     // 清空过时的ActionForm
 
     // 获取应用截图
-    // setTimeout(()=>{
-    //   getScreenshot();
-    // },1500)
+    setTimeout(()=>{
+      getScreenshot();
+    },1000)
   } catch (error) {
     message.error(`保存失败: ${error.message}`);
   }
