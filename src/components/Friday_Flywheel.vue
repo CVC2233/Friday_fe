@@ -1,5 +1,5 @@
 <script setup>
-import {reactive, ref, watch} from 'vue';
+import {computed, reactive, ref, watch} from 'vue';
 import {message} from 'ant-design-vue';
 import {get, post} from '@/utils/request.js'
 // 响应式状态
@@ -9,31 +9,76 @@ const rawModelResponse = ref(null);
 const modifiedResult = ref('');// 不再需要
 const initLoading = ref(false);
 const modelLoading = ref(false);
-const taskTypes = [{ label: '购物', value: 'shopping' },{label:'消息',value:'news'}];
+const taskTypes = [{ label: '购物', value: 'shopping' },{label:'消息',value:'chat'}];
 const applications = {
-  shopping: [{ label: '美团', value: 'meituan_waimai' }],
+  shopping: [{ label: '美团外卖', value: 'meituan_waimai' }],
   // 你可以继续添加其他类型和应用
-  news:[{label:'微信',value:'wechat'}]
+  chat:[{label:'微信',value:'wechat'}]
 };
 const selectedTaskType = ref('shopping');
 const selectedApplication = ref('meituan_waimai');
-const shoppingTaskParameters = reactive({
-  count: 0,
-  product_name: '',
-  store_name: '',
-  specifications: ''
-});
+const shoppingTaskParameters = reactive({});
 // 实现任务通用化
 const taskParametersMap={
+  // 购物任务的元数据定义
   shopping: {
-    count: 0,
-    product_name: '',
-    store_name: '',
-    specifications: ''
+    quantity: {
+      label: '商品数量',
+      type: 'number', // 'text', 'number', 'select' 等
+      defaultValue: 1,
+      props: { // 可以传递给组件的额外属性
+        min: 1,
+        style: 'width: 80px'
+      }
+    },
+    item_name: {
+      label: '商品名称',
+      type: 'text',
+      defaultValue: '',
+      placeholder: '请输入商品名称'
+    },
+    store_name: {
+      label: '店铺名称',
+      type: 'text',
+      defaultValue: '',
+      placeholder: '请输入店铺名称'
+    },
+    specs: {
+      label: '商品规格',
+      type: 'text',
+      defaultValue: '',
+      placeholder: '（可选）如：大杯/去冰'
+    }
+  },
+  chat: {
+    test: {
+      label: '测试参数',
+      type: 'text',
+      defaultValue: '',
+      placeholder: '请输入测试参数'
+    },
   }
 }
 // 当前展示的二级任务参数
 const activeTaskParameters=reactive({});
+// 【新增】计算属性，用于获取当前任务的表单“结构定义”
+const activeTaskSchema = computed(() => {
+  return taskParametersMap[selectedTaskType.value] || {};
+});
+
+// 使用 watch 监听任务类型的变化，来重置 activeTaskParameters
+watch(selectedTaskType, (newType) => {
+  const schema = taskParametersMap[newType];
+  if (!schema) return;
+
+  // 1. 清空旧的参数
+  Object.keys(activeTaskParameters).forEach(key => delete activeTaskParameters[key]);
+
+  // 2. 根据新的 schema 设置默认值
+  for (const key in schema) {
+    activeTaskParameters[key] = schema[key].defaultValue;
+  }
+}, { immediate: true }); // immediate: true 确保组件加载时立即执行一次
 // --- [新增] 表单相关的状态和常量 ---
 // Action 的所有可能类型
 const actionTypes = [
@@ -130,7 +175,7 @@ const initApp= async ()=>{
   // screenshot.value = await convertImageToBase64('src/assets/screenshots/01_main_page.png');
 }
 const testImageLoad=async ()=>{
-  screenshot.value = await convertImageToBase64('src/assets/screenshots/test1.jpeg');
+  screenshot.value = await convertImageToBase64('src/assets/screenshots/01_main_page.png');
 }
 /**
  * [新增] 一个辅助函数，用于根据后端返回的 action 对象更新表单
@@ -235,15 +280,23 @@ watch(screenshot, (newScreenshot) => {
 
 // 推理
 const infer=async ()=>{
+  // const res= await post('/infer',{
+  //   'image_base64': screenshot.value,
+  //   'slot_info': {
+  //     'task_type':selectedTaskType.value,
+  //     'app_name':selectedApplication.value,
+  //     'quantity':shoppingTaskParameters.count,
+  //     'item_name':shoppingTaskParameters.product_name,
+  //     'store_name':shoppingTaskParameters.store_name,
+  //     'specs':shoppingTaskParameters.specifications
+  //   }
+  // });
   const res= await post('/infer',{
     'image_base64': screenshot.value,
+    'task_type':selectedTaskType.value,
+    'app_name':selectedApplication.value,
     'slot_info': {
-      'task_type':selectedTaskType.value,
-      'app_name':selectedApplication.value,
-      'quantity':shoppingTaskParameters.count,
-      'item_name':shoppingTaskParameters.product_name,
-      'store_name':shoppingTaskParameters.store_name,
-      'specs':shoppingTaskParameters.specifications
+      ...activeTaskParameters
     }
   });
   if(res.status==='success'){
@@ -269,23 +322,21 @@ const getScreenshot=async ()=>{
 }
 // 生成任务
 const generateTask = () => {
-  shoppingTaskParameters.count=2;
-  shoppingTaskParameters.product_name='多肉葡萄';
-  shoppingTaskParameters.store_name='喜茶';
-  shoppingTaskParameters.specifications='';
+  // shoppingTaskParameters.count=2;
+  // shoppingTaskParameters.product_name='多肉葡萄';
+  // shoppingTaskParameters.store_name='喜茶';
+  // shoppingTaskParameters.specifications='';
+  console.log('生成任务');
 }
 // 保存标注
 const handleSaveAnnotation = async () => {
   try {
     await post('/save-annotation', {
       'image_base64': screenshot.value,
+      'task_type':selectedTaskType.value,
+      'app_name':selectedApplication.value,
       'slot_info': {
-        'task_type':selectedTaskType.value,
-        'app_name':selectedApplication.value,
-        'quantity':shoppingTaskParameters.count,
-        'item_name':shoppingTaskParameters.product_name,
-        'store_name':shoppingTaskParameters.store_name,
-        'specs':shoppingTaskParameters.specifications
+        ...activeTaskParameters
       },
       'action_info':actionForm,
       'user_id':user_id.value,
@@ -621,6 +672,7 @@ const testRestart= async ()=>{
           type="primary"
           :loading="initLoading"
           @click="generateTask"
+          disabled
       >
         生成任务
       </a-button>
@@ -672,21 +724,61 @@ const testRestart= async ()=>{
     </a-space>
 
     <!-- 参数输入部分-shopping -->
-    <a-form layout="inline" v-if="selectedTaskType==='shopping'">
-      <a-form-item label="商品数量">
-        <a-input-number v-model:value="shoppingTaskParameters['count']" style="width: 60px"/>
-      </a-form-item>
-      <a-form-item label="商品名称">
-        <a-input v-model:value="shoppingTaskParameters['product_name']" placeholder="请输入商品名称" />
-      </a-form-item>
-      <a-form-item label="店铺名称">
-        <a-input v-model:value="shoppingTaskParameters['store_name']" placeholder="请输入店铺名称" />
-      </a-form-item>
-      <a-form-item label="商品规格">
-        <a-input v-model:value="shoppingTaskParameters['specifications']" placeholder="请输入商品规格" />
-      </a-form-item>
+<!--    <a-form layout="inline" v-if="selectedTaskType==='shopping'">-->
+<!--      <a-form-item label="商品数量">-->
+<!--        <a-input-number v-model:value="shoppingTaskParameters['count']" style="width: 60px"/>-->
+<!--      </a-form-item>-->
+<!--      <a-form-item label="商品名称">-->
+<!--        <a-input v-model:value="shoppingTaskParameters['product_name']" placeholder="请输入商品名称" />-->
+<!--      </a-form-item>-->
+<!--      <a-form-item label="店铺名称">-->
+<!--        <a-input v-model:value="shoppingTaskParameters['store_name']" placeholder="请输入店铺名称" />-->
+<!--      </a-form-item>-->
+<!--      <a-form-item label="商品规格">-->
+<!--        <a-input v-model:value="shoppingTaskParameters['specifications']" placeholder="请输入商品规格" />-->
+<!--      </a-form-item>-->
 
+<!--    </a-form>-->
+    <!-- 参数输入部分 - 完全动态化 -->
+    <a-form layout="inline">
+      <!-- 遍历当前任务的 schema 来动态生成表单项 -->
+      <a-form-item
+          v-for="(schema, key) in activeTaskSchema"
+          :key="key"
+          :label="schema.label"
+      >
+        <!-- 根据 schema.type 渲染不同的输入组件 -->
+
+        <!-- 文本输入框 -->
+        <a-input
+            v-if="schema.type === 'text'"
+            v-model:value="activeTaskParameters[key]"
+            :placeholder="schema.placeholder"
+            v-bind="schema.props"
+        />
+
+        <!-- 数字输入框 -->
+        <a-input-number
+            v-if="schema.type === 'number'"
+            v-model:value="activeTaskParameters[key]"
+            :placeholder="schema.placeholder"
+            v-bind="schema.props"
+        />
+
+        <!-- 下拉选择框 -->
+        <a-select
+            v-if="schema.type === 'select'"
+            v-model:value="activeTaskParameters[key]"
+            :options="schema.options"
+            style="width: 120px"
+            v-bind="schema.props"
+        />
+
+        <!-- 未来可以轻松增加对 'date', 'checkbox' 等类型的支持 -->
+
+      </a-form-item>
     </a-form>
+
 
     <!-- 主要内容区 -->
     <a-layout-content class="content">
