@@ -328,6 +328,43 @@ const generateTask = () => {
   // shoppingTaskParameters.specifications='';
   console.log('生成任务');
 }
+const handleSaveAnnotationOnly = async () => {
+  try {
+    await post('/save-annotation', {
+      'image_base64': screenshot.value,
+      'task_type':selectedTaskType.value,
+      'app_name':selectedApplication.value,
+      'slot_info': {
+        ...activeTaskParameters
+      },
+      'action_info':actionForm,
+      'user_id':user_id.value,
+
+    });
+    console.log(actionForm.value);
+    message.success('标注保存成功');
+    // 清空标注
+    // Object.assign(actionForm, {
+    //   // 设置默认值
+    //   action: null,
+    //   x: null,
+    //   y: null,
+    //   value: '',
+    //   direction: 'up',
+    //   distance: 'medium',
+    //   x_end: null,
+    //   y_end: null,
+    // });
+    // 获取应用截图
+    // await getScreenshot();
+    // 清空过时的ActionForm
+
+  } catch (error) {
+    message.error(`保存失败: ${error.message}`);
+  }
+  // message.success('标注保存成功');
+  // screenshot.value=await convertImageToBase64('src/assets/screenshots/02_search_store.png');
+};
 // 保存标注
 const handleSaveAnnotation = async () => {
   try {
@@ -704,6 +741,13 @@ const testRestart= async ()=>{
           @click="getScreenshot"
       >
         截图
+      </a-button>
+      <a-button
+          type="primary"
+          :loading="initLoading"
+          @click="handleSaveAnnotationOnly"
+      >
+        仅保存标注
       </a-button>
       <a-button
           type="primary"
