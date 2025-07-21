@@ -116,7 +116,40 @@ const actionForm = reactive({
   x_end: null,
   y_end: null
 });
+/**
+ * [新增] a-upload 上传前的处理函数
+ * 将用户上传的图片文件转换为 Base64 字符串，并更新到 `screenshot` ref 中。
+ * @param {File} file - 用户选择的文件对象
+ * @returns {boolean} - 返回 false 以阻止 antd-vue 的默认上传行为
+ */
+const handleBeforeUpload = (file) => {
+  // 1. 校验文件类型是否为图片
+  const isImage = file.type.startsWith('image/');
+  if (!isImage) {
+    message.error('只能上传图片文件！');
+    return false;
+  }
 
+  // 2. 使用 FileReader 将文件转换为 Base64
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+
+  // 3. 读取成功后的回调
+  reader.onload = () => {
+    // reader.result 包含 "data:image/jpeg;base64,..." 格式的字符串
+    screenshot.value = reader.result;
+    message.success('本地图片加载成功！');
+  };
+
+  // 4. 读取失败后的回调
+  reader.onerror = (error) => {
+    message.error('图片读取失败，请检查文件或浏览器权限。');
+    console.error('FileReader error:', error);
+  };
+
+  // 5. 返回 false, 阻止 antd-vue 组件的默认上传请求
+  return false;
+};
 /**
  * 将给定的图片URL转换为Base64编码的Data URL。
  *
@@ -765,6 +798,15 @@ const testRestart= async ()=>{
       >
         测试重启app
       </a-button>
+      <!-- [新增] 本地图片上传功能 -->
+      <a-upload
+          :before-upload="handleBeforeUpload"
+          :show-upload-list="false"
+      >
+        <a-button type="primary">
+          上传本地图片
+        </a-button>
+      </a-upload>
     </a-space>
 
     <!-- 参数输入部分-shopping -->
