@@ -340,6 +340,25 @@ const infer=async ()=>{
     handlePreview();
   }
 }
+// multi-agents推理
+const infer_multi_agents=async ()=>{
+  const res= await post('/infer_multi_agents',{
+    'image_base64': screenshot.value,
+    'task_type':selectedTaskType.value,
+    'app_name':selectedApplication.value,
+    'slot_info': {
+      ...activeTaskParameters
+    }
+  });
+  console.log('multi-agent推理',res)
+  if(res.status==='success'){
+    console.log('模型响应',res.data);
+    rawModelResponse.value = res.data; // 保存原始响应
+    updateActionForm(res.data); // 使用新函数更新我们的表单
+    // 预览标注
+    handlePreview();
+  }
+}
 // 获取截图
 const getScreenshot=async ()=>{
   try {
@@ -759,6 +778,13 @@ const testRestart= async ()=>{
           @click="infer"
       >
         请求模型,生成操作
+      </a-button>
+      <a-button
+          type="primary"
+          :loading="initLoading"
+          @click="infer_multi_agents"
+      >
+        multi-agents请求
       </a-button>
       <a-button
           type="primary"
